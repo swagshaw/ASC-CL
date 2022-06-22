@@ -30,7 +30,7 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='disjoint')
     parser.add_argument('--workspace', type=str, default='workspace')
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--epoch', type=int, default=1)
+    parser.add_argument('--epoch', type=int, default=50)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--model_name', type=str, default='BC-ResNet')  # 'baseline' | 'BC-ResNet'
     parser.add_argument('--dataset', type=str, default='TAU-ASC')  # 'TAU-ASC' | 'MSoS' |
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         "--mem_manage",
         type=str,
         default='equal',
-        help="memory management [random, uncertainty, reservoir, prototype]",
+        help="memory management [random, uncertainty, reservoir, prototype,equal]",
     )
     parser.add_argument("--n_tasks", type=int, default=3, help="The number of tasks")
     parser.add_argument(
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--uncert_metric",
         type=str,
-        default="shift",
+        default="combination",
         choices=["shift", "noise", "mask", "combination"],
         help="A type of uncertainty metric",
     )
