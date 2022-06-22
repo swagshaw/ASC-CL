@@ -13,13 +13,13 @@ conda active asc
 We use the TAU-ASC and ESC-50 dataset as the training data. 
 You should put them into:
 ```bash
-./data/TAU_ASC
-./data/ESC-50-master
+your_project_path/data/TAU_ASC
+your_project_path/data/ESC-50-master
 ```
 Then use the `./data/generate_json.py`:
 ```python
-python generate_json.py --mode train
-python generate_json.py --mode test
+python generate_json.py --mode train --dpath your_project_path/data
+python generate_json.py --mode test  --dpath your_project_path/data
 ```
 ### Usage 
 To run the experiments in the paper, you just run `train.sh`.
