@@ -34,12 +34,12 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--model_name', type=str, default='BC-ResNet')  # 'baseline' | 'BC-ResNet'
     parser.add_argument('--dataset', type=str, default='TAU-ASC')  # 'TAU-ASC' | 'MSoS' |
-    parser.add_argument("--mode", type=str, default="random", help="CIL methods [finetune ,random, rainbow]", )
+    parser.add_argument("--mode", type=str, default="replay", help="CIL methods [finetune, replay]", )
     parser.add_argument(
         "--mem_manage",
         type=str,
-        default='prototype',
-        help="memory management [default, random, uncertainty, reservoir, prototype]",
+        default='random',
+        help="memory management [random, uncertainty, reservoir, prototype]",
     )
     parser.add_argument("--n_tasks", type=int, default=3, help="The number of tasks")
     parser.add_argument(
@@ -55,13 +55,6 @@ if __name__ == '__main__':
     parser.add_argument(
         "--memory_size", type=int, default=50, help="Episodic memory size"
     )
-    # ICARL
-    parser.add_argument(
-        "--feature_size",
-        type=int,
-        default=256,
-        help="Feature size when embedding a sample",
-    )
     # Uncertain
     parser.add_argument(
         "--uncert_metric",
@@ -70,7 +63,6 @@ if __name__ == '__main__':
         choices=["vr", "vr1", "vr_randaug", "loss"],
         help="A type of uncertainty metric",
     )
-
     # Debug
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")
     args = parser.parse_args()
@@ -130,9 +122,9 @@ if __name__ == '__main__':
         'fmax': 14000}
 
     num_class = 10
-    if dataset == 'MSoS':
-        frontend_params['sample_rate'] = 41000
-        num_class = 5
+    if dataset == 'ESC-50':
+        frontend_params['sample_rate'] = 44100
+        num_class = 50
     frontend = Audio_Frontend(**frontend_params)
 
     # Fix the random seeds
@@ -176,9 +168,6 @@ if __name__ == '__main__':
         # get datalist
         cur_train_datalist = get_train_datalist(args, cur_iter)
         cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
-
-        cur_train_datalist = cur_train_datalist[:500]
-        cur_test_datalist = cur_test_datalist[:500]
         logger.info("[2-2] Set environment for the current task")
         method.set_current_dataset(cur_train_datalist, cur_test_datalist)
         # Increment known class for current task iteration.
