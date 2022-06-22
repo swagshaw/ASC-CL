@@ -16,6 +16,11 @@ You should put them into:
 ./data/TAU_ASC
 ./data/ESC-50-master
 ```
+Then use the `./data/generate_json.py`:
+```python
+python generate_json.py --mode train
+python generate_json.py --mode test
+```
 ### Usage 
 To run the experiments in the paper, you just run `train.sh`.
 For various experiments, you should know the role of each argument. 
