@@ -6,33 +6,22 @@
 @Description : get_methods
 """
 import logging
-
-from methods.finetune import Finetune
-from methods.rainbow import RM
-
+from methods.base import BaseMethod
 logger = logging.getLogger()
 
 
 def get_methods(args, criterion, device, n_classes, model):
     kwargs = vars(args)
     if args.mode == "finetune":
-        method = Finetune(
+        method = BaseMethod(
             criterion=criterion,
             device=device,
             n_classes=n_classes,
             model=model,
             **kwargs,
         )
-    elif args.mode == "random":
-        method = Finetune(
-            criterion=criterion,
-            device=device,
-            n_classes=n_classes,
-            model=model,
-            **kwargs,
-        )
-    elif args.mode == "rainbow":
-        method = RM(
+    elif args.mode == "replay":
+        method = BaseMethod(
             criterion=criterion,
             device=device,
             n_classes=n_classes,
@@ -42,7 +31,7 @@ def get_methods(args, criterion, device, n_classes, model):
     else:
         raise NotImplementedError(
             "Choose the args.mode in "
-            "[finetune, random,rainbow]"
+            "[finetune, replay]"
         )
     logger.info(f"CIL Scenario: {args.mode}")
     print(f"\nn_tasks: {args.n_tasks}")
