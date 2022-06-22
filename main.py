@@ -38,7 +38,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--mem_manage",
         type=str,
-        default='random',
+        default='equal',
         help="memory management [random, uncertainty, reservoir, prototype]",
     )
     parser.add_argument("--n_tasks", type=int, default=3, help="The number of tasks")
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")
     args = parser.parse_args()
 
-    save_path = f"{args.dataset}_{args.mode}_cls{args.n_cls_a_task}_{args.mem_manage}" \
+    save_path = f"{args.dataset}_{args.mode}_cls{args.n_cls_a_task}_{args.mem_manage}_{args.uncert_metric}" \
                 f"_epoch{args.epoch}_lr{args.lr}_msz{args.memory_size}_rnd{args.rnd_seed}"
 
     # Training parameters

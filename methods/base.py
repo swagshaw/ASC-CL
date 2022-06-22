@@ -50,8 +50,6 @@ class BaseMethod:
         self.model = self.model.to(self.device)
 
         # Parameters for Prototype Sampler
-
-        self.feature_size = kwargs["feature_size"]
         self.feature_extractor = model
         self.sample_length = 48000
         if self.dataset == 'ESC-50':
@@ -135,6 +133,10 @@ class BaseMethod:
                             candidates,
                             num_class=num_class,
                         )
+                elif self.mem_manage == "equal":
+                    self.memory_list = self.equal_class_sampling(
+                        candidates, num_class
+                    )
                 else:
                     logger.error("Not implemented memory management")
                     raise NotImplementedError
