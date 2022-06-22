@@ -20,38 +20,6 @@ def load_audio(path, sr):
     return y
 
 
-class MSoS_Dataset(Dataset):
-    """
-    Make sense of Sound Challenge Dataset
-    Data split: train | test
-    """
-
-    def __init__(self, data_frame: pd.DataFrame):
-        self.data_frame = data_frame
-        self.sample_rate = 41000
-
-    def __len__(self):
-        return len(self.data_frame)
-
-    def __getitem__(self, index):
-        if torch.is_tensor(index):
-            index = index.tolist()
-        file_name = self.data_frame.iloc[index]["file_name"]
-        label = self.data_frame.iloc[index].get("label", -1)
-        waveform = load_audio(file_name, self.sample_rate)
-        max_length = self.sample_rate * 5
-        if len(waveform) > max_length:
-            waveform = waveform[0:max_length]
-        else:
-            waveform = np.pad(waveform, (0, max_length - len(waveform)), 'constant')
-
-        audio_name = os.path.split(file_name)[-1]
-        target = np.eye(5)[label]
-        data_dict = {'audio_name': audio_name, 'waveform': waveform, 'target': target, 'label': label}
-
-        return data_dict
-
-
 class ASC_Dataset(Dataset):
     def __init__(self, data_frame: pd.DataFrame):
         self.data_frame = data_frame

@@ -7,7 +7,7 @@ import time
 import numpy as np
 import logging as log_config
 from pytorch.losses import get_loss_func
-from dataset import get_train_datalist, get_test_datalist
+from data_loader import get_train_datalist, get_test_datalist
 from models.model import Baseline_CNN, BCResNet_Mod
 from models.frontend import Audio_Frontend
 from utils.get_methods import get_methods
