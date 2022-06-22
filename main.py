@@ -59,8 +59,8 @@ if __name__ == '__main__':
     parser.add_argument(
         "--uncert_metric",
         type=str,
-        default="vr",
-        choices=["vr", "vr1", "vr_randaug", "loss"],
+        default="shift",
+        choices=["shift", "noise", "mask", "combination"],
         help="A type of uncertainty metric",
     )
     # Debug
@@ -137,6 +137,8 @@ if __name__ == '__main__':
 
     # [1] Select a CIL method
     logger.info(f"[1] Select a CIL method ({args.mode})")
+    if args.mem_manage == 'uncertainty':
+        logger.info(f"Select uncertainty measure approach ({args.uncert_metric})")
     loss_func = get_loss_func('clip_ce')
     if model_name == 'baseline':
         model = Baseline_CNN(num_class=num_class, frontend=frontend)

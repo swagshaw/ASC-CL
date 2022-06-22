@@ -7,58 +7,21 @@
 When we make a new one, we should inherit the BaseMethod class.
 """
 import logging
-import os
 import random
-import torch.nn.functional as F
-
 import numpy as np
 import pandas as pd
 import torch
 from soundata.datasets import tau2019uas
-from torch import nn, optim
+from torch import optim
 from tqdm import tqdm
-# from audiomentations import Compose, AddGaussianNoise, PitchShift, Shift, FrequencyMask, ClippingDistortion
-from torch_audiomentations import Compose, PitchShift, Shift
-from dataset import get_dataloader, load_audio
+
+from torch_audiomentations import Compose, PitchShift, Shift, AddColoredNoise
+from audiomentations import Compose as Normal_Compose
+from audiomentations import FrequencyMask
+from data_loader import get_dataloader
 from pytorch.evaluate import Evaluator
 
 logger = logging.getLogger()
-
-
-class TimeMask:
-    def __init__(self, min_band_part=0.0, max_band_part=0.5):
-        self.min_band_part = min_band_part
-        self.max_band_part = max_band_part
-
-    def __call__(self, samples, sample_rate):
-        num_samples = samples.shape[-1]
-        t = random.randint(
-            int(num_samples * self.min_band_part),
-            int(num_samples * self.max_band_part),
-        )
-        t0 = random.randint(
-            0, num_samples - t
-        )
-        new_samples = samples.clone()
-        mask = torch.zeros(t)
-        new_samples[..., t0: t0 + t] *= mask
-        return new_samples
-
-
-class ICaRLNet(nn.Module):
-    def __init__(self, model, feature_size, n_class):
-        super().__init__()
-        self.model = model
-        self.bn = nn.BatchNorm1d(feature_size, momentum=0.01)
-        self.ReLU = nn.ReLU()
-        self.fc = nn.Linear(feature_size, n_class, bias=False)
-
-    def forward(self, x):
-        x = self.model(x)['clipwise_output']
-        x = self.bn(x)
-        x = self.ReLU(x)
-        x = self.fc(x)
-        return x
 
 
 class BaseMethod:
@@ -101,10 +64,10 @@ class BaseMethod:
         self.memory_list = []
         self.memory_size = kwargs["memory_size"]
         self.mem_manage = kwargs["mem_manage"]
-        if kwargs["mem_manage"] == "default":
-            self.mem_manage = "random"
         self.already_mem_update = False
         self.mode = kwargs["mode"]
+        if self.mode == "finetune":
+            self.memory_size = 0
         self.uncert_metric = kwargs["uncert_metric"]
 
     def set_current_dataset(self, train_datalist, test_datalist):
@@ -432,29 +395,43 @@ class BaseMethod:
                     sample = infer_list[batch_size * n_batch + i]
                     sample[uncert_name] = 1 - cert_value
 
-    def montecarlo(self, candidates, uncert_metric="vr"):
+    def montecarlo(self, candidates, uncert_metric="shift"):
         transform_cands = []
         logger.info(f"Compute uncertainty by {uncert_metric}!")
-        if uncert_metric == "vr":
-            # transform_cands = [
-            #     AddGaussianNoise(min_amplitude=0.001, max_amplitude=0.015, p=1),
-            #     PitchShift(min_semitones=-4, max_semitones=4, p=1),
-            #     Shift(min_fraction=-0.5, max_fraction=0.5, p=1),
-            #     TimeMask(min_band_part=0, max_band_part=0.1),
-            #     FrequencyMask(min_frequency_band=0, max_frequency_band=0.1, p=1),
-            #     ClippingDistortion(min_percentile_threshold=0, max_percentile_threshold=10, p=1)
-            # ]
+        if uncert_metric == "shift":
             transform_cands = [PitchShift(sample_rate=self.sample_length, p=1.0),
-                               Shift(sample_rate=self.sample_length)
+                               Shift(sample_rate=self.sample_length, p=1.0)
                                ]
-        elif uncert_metric == "vr_timemask":
-            transform_cands = [TimeMask(min_band_part=0, max_band_part=0.1)] * 12
-
+            for idx, tr in enumerate(transform_cands):
+                _tr = Compose([tr])
+                self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
+        elif uncert_metric == "noise":
+            transform_cands = [AddColoredNoise(sample_rate=self.sample_length, p=1.0)] * 2
+            for idx, tr in enumerate(transform_cands):
+                _tr = Compose([tr])
+                self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
+        elif uncert_metric == "mask":
+            transform_cands = [TimeMask(min_band_part=0, max_band_part=0.1),
+                               FrequencyMask(min_frequency_band=0, max_frequency_band=0.1, p=1)]
+            for idx, tr in enumerate(transform_cands):
+                _tr = Normal_Compose([tr])
+                self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
+        elif uncert_metric == "combination":
+            transform_cands = [TimeMask(min_band_part=0, max_band_part=0.1),
+                               FrequencyMask(min_frequency_band=0, max_frequency_band=0.1, p=1),
+                               AddColoredNoise(sample_rate=self.sample_length, p=1.0),
+                               PitchShift(sample_rate=self.sample_length, p=1.0),
+                               Shift(sample_rate=self.sample_length, p=1.0)
+                               ]
+            random.shuffle(transform_cands)
+            transform_cands = transform_cands[:2]
+            for idx, tr in enumerate(transform_cands):
+                if 'audiomentations' in str(transform_cands[0]):
+                    _tr = Normal_Compose([tr])
+                else:
+                    _tr = Compose([tr])
+                self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
         n_transforms = len(transform_cands)
-
-        for idx, tr in enumerate(transform_cands):
-            _tr = Compose([tr])
-            self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
 
         for sample in candidates:
             self.variance_ratio(sample, n_transforms)
@@ -492,3 +469,23 @@ class BaseMethod:
             logger.warning(f"Duplicated samples in memory: {num_dups}")
 
         return ret
+
+
+class TimeMask:
+    def __init__(self, min_band_part=0.0, max_band_part=0.5):
+        self.min_band_part = min_band_part
+        self.max_band_part = max_band_part
+
+    def __call__(self, samples, sample_rate):
+        num_samples = samples.shape[-1]
+        t = random.randint(
+            int(num_samples * self.min_band_part),
+            int(num_samples * self.max_band_part),
+        )
+        t0 = random.randint(
+            0, num_samples - t
+        )
+        new_samples = samples.clone()
+        mask = torch.zeros(t)
+        new_samples[..., t0: t0 + t] *= mask
+        return new_samples
