@@ -177,3 +177,4 @@ dependencies:
     - werkzeug==2.1.1
     - wrapt==1.14.0
     - zipp==3.7.0
+    - torch-audiomentations
