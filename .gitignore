@@ -2,10 +2,12 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+data/MSoS
+data/TAU_ASC
+data/Speech_commands_v1
 # C extensions
 *.so
-
+workspace
 # Distribution / packaging
 .Python
 build/
