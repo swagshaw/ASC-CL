@@ -38,12 +38,15 @@ class BaseMethod:
         self.dataset = kwargs["dataset"]
 
         # Parameters for Trainer
+        self.patience = 7
         self.device = device
         self.criterion = criterion
         self.lr = kwargs["lr"]
         self.optimizer, self.scheduler = None, None
         # self.criterion = self.criterion.to(self.device)
         self.evaluator = Evaluator(model=model)
+        self.counter = 0
+
         # Parameters for Model
         self.model_name = kwargs["model_name"]
         self.model = model
@@ -159,7 +162,7 @@ class BaseMethod:
         return train_loader, test_loader
 
     def train(self, n_epoch, batch_size, n_worker):
-
+        self.counter = 0
         train_list = self.streamed_list + self.memory_list
         random.shuffle(train_list)
         test_list = self.test_list
@@ -207,7 +210,13 @@ class BaseMethod:
             if ave_acc > best['acc']:
                 best['acc'] = ave_acc
                 best['epoch'] = epoch
-
+                logger.info(f'Best Accuracy: {ave_acc} in epoch {epoch}.')
+                self.counter = 0
+            else:
+                self.counter += 1
+                logger.info(f'EarlyStopping counter: {self.counter} out of {self.patience}.')
+                if self.counter >= self.patience:
+                    break
         return np.mean(acc_list)
 
     def rnd_sampling(self, samples):

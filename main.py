@@ -34,7 +34,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--model_name', type=str, default='BC-ResNet')  # 'baseline' | 'BC-ResNet'
     parser.add_argument('--dataset', type=str, default='TAU-ASC')  # 'TAU-ASC' | 'MSoS' |
-    parser.add_argument("--mode", type=str, default="replay", help="CIL methods [finetune, replay]", )
+    parser.add_argument("--mode", type=str, default="finetune", help="CIL methods [finetune, replay]", )
     parser.add_argument(
         "--mem_manage",
         type=str,
@@ -53,7 +53,7 @@ if __name__ == '__main__':
     )
     parser.add_argument("--rnd_seed", type=int, default=3, help="Random seed number.")
     parser.add_argument(
-        "--memory_size", type=int, default=50, help="Episodic memory size"
+        "--memory_size", type=int, default=500, help="Episodic memory size"
     )
     # Uncertain
     parser.add_argument(
@@ -96,7 +96,7 @@ if __name__ == '__main__':
         format=' %(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             log_config.FileHandler(os.path.join(log_dir,
-                                                '%s-%d.log' % (exp_name, time.time()))),
+                                                f'%s-{save_path}-%d.log' % (exp_name, time.time()))),
             log_config.StreamHandler()
         ]
     )
