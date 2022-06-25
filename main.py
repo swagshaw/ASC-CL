@@ -63,6 +63,8 @@ if __name__ == '__main__':
         choices=["shift", "noise", "mask", "combination"],
         help="A type of uncertainty metric",
     )
+    parser.add_argument("--metric_k", type=int, default=2, choices=[2, 4, 6],
+                        help="The number of the uncertainty metric functions")
     # Debug
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")
     args = parser.parse_args()
