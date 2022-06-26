@@ -30,25 +30,25 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='disjoint')
     parser.add_argument('--workspace', type=str, default='workspace')
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--epoch', type=int, default=30)
+    parser.add_argument('--epoch', type=int, default=1)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--model_name', type=str, default='BC-ResNet')  # 'baseline' | 'BC-ResNet'
-    parser.add_argument('--dataset', type=str, default='TAU-ASC')  # 'TAU-ASC' | 'MSoS' |
-    parser.add_argument("--mode", type=str, default="replay", help="CIL methods [finetune, replay]", )
+    parser.add_argument('--dataset', type=str, default='ESC-50')  # 'TAU-ASC' | 'ESC-50' |
+    parser.add_argument("--mode", type=str, default="finetune", help="CIL methods [finetune, replay]", )
     parser.add_argument(
         "--mem_manage",
         type=str,
         default='prototype',
         help="memory management [random, uncertainty, reservoir, prototype]",
     )
-    parser.add_argument("--n_tasks", type=int, default=5, help="The number of tasks")
+    parser.add_argument("--n_tasks", type=int, default=11, help="The number of tasks")
     parser.add_argument(
-        "--n_cls_a_task", type=int, default=2, help="The number of class of each task"
+        "--n_cls_a_task", type=int, default=4, help="The number of class of each task"
     )
     parser.add_argument(
         "--n_init_cls",
         type=int,
-        default=2,
+        default=10,
         help="The number of classes of initial task",
     )
     parser.add_argument("--rnd_seed", type=int, default=3, help="Random seed number.")
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         choices=["shift", "noise", "mask", "combination", "noisytune"],
         help="A type of uncertainty metric",
     )
-    parser.add_argument("--metric_k", type=int, default=6, choices=[2, 4, 6],
+    parser.add_argument("--metric_k", type=int, default=4, choices=[2, 4, 6],
                         help="The number of the uncertainty metric functions")
     parser.add_argument("--noise_lambda", type=float, default=0.4,
                         help="The number of the uncertainty metric functions")
@@ -170,23 +170,41 @@ if __name__ == '__main__':
 
         logger.info("[2-1] Prepare a datalist for the current task")
         task_acc = 0.0
+        if args.dataset == "ESC-50":
+            cur_train_datalist = get_train_datalist(args, cur_iter)
+            cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
+            fold_acc = 0.0
+            for test_fold in range(1, 6):
+                logger.info(f"Set the test fold number {test_fold} of the current task")
+                method.set_current_dataset(cur_train_datalist[test_fold-1], cur_test_datalist[test_fold-1])
+                # Increment known class for current task iteration.
+                method.before_task(datalist=cur_train_datalist[test_fold-1], init_opt=True)
+                logger.info(f"[2-3] Start to train")
+                fold_acc += method.train(
+                    n_epoch=args.epoch,
+                    batch_size=args.batch_size,
+                    n_worker=8,
+                )
+                logger.info("[2-4] Update the information for the current task")
+                method.after_task(cur_iter)
+            task_acc = fold_acc/5
+        else:
+            # get datalist
+            cur_train_datalist = get_train_datalist(args, cur_iter)
+            cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
+            logger.info("[2-2] Set environment for the current task")
+            method.set_current_dataset(cur_train_datalist, cur_test_datalist)
+            # Increment known class for current task iteration.
+            method.before_task(datalist=cur_train_datalist, init_opt=True)
 
-        # get datalist
-        cur_train_datalist = get_train_datalist(args, cur_iter)
-        cur_test_datalist = get_test_datalist(args, args.exp_name, cur_iter)
-        logger.info("[2-2] Set environment for the current task")
-        method.set_current_dataset(cur_train_datalist, cur_test_datalist)
-        # Increment known class for current task iteration.
-        method.before_task(datalist=cur_train_datalist, init_opt=True)
-
-        logger.info(f"[2-3] Start to train")
-        task_acc = method.train(
-            n_epoch=args.epoch,
-            batch_size=args.batch_size,
-            n_worker=8,
-        )
-        logger.info("[2-4] Update the information for the current task")
-        method.after_task(cur_iter)
+            logger.info(f"[2-3] Start to train")
+            task_acc = method.train(
+                n_epoch=args.epoch,
+                batch_size=args.batch_size,
+                n_worker=8,
+            )
+            logger.info("[2-4] Update the information for the current task")
+            method.after_task(cur_iter)
         task_records["task_acc"].append(task_acc)
 
         if cur_iter > 0:
