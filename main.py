@@ -30,25 +30,25 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='disjoint')
     parser.add_argument('--workspace', type=str, default='workspace')
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--epoch', type=int, default=50)
+    parser.add_argument('--epoch', type=int, default=30)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--model_name', type=str, default='BC-ResNet')  # 'baseline' | 'BC-ResNet'
     parser.add_argument('--dataset', type=str, default='TAU-ASC')  # 'TAU-ASC' | 'MSoS' |
-    parser.add_argument("--mode", type=str, default="finetune", help="CIL methods [finetune, replay]", )
+    parser.add_argument("--mode", type=str, default="replay", help="CIL methods [finetune, replay]", )
     parser.add_argument(
         "--mem_manage",
         type=str,
-        default='equal',
-        help="memory management [random, uncertainty, reservoir, prototype,equal]",
+        default='prototype',
+        help="memory management [random, uncertainty, reservoir, prototype]",
     )
-    parser.add_argument("--n_tasks", type=int, default=3, help="The number of tasks")
+    parser.add_argument("--n_tasks", type=int, default=5, help="The number of tasks")
     parser.add_argument(
-        "--n_cls_a_task", type=int, default=3, help="The number of class of each task"
+        "--n_cls_a_task", type=int, default=2, help="The number of class of each task"
     )
     parser.add_argument(
         "--n_init_cls",
         type=int,
-        default=4,
+        default=2,
         help="The number of classes of initial task",
     )
     parser.add_argument("--rnd_seed", type=int, default=3, help="Random seed number.")
@@ -59,18 +59,20 @@ if __name__ == '__main__':
     parser.add_argument(
         "--uncert_metric",
         type=str,
-        default="combination",
-        choices=["shift", "noise", "mask", "combination"],
+        default="noisytune",
+        choices=["shift", "noise", "mask", "combination", "noisytune"],
         help="A type of uncertainty metric",
     )
-    parser.add_argument("--metric_k", type=int, default=2, choices=[2, 4, 6],
+    parser.add_argument("--metric_k", type=int, default=6, choices=[2, 4, 6],
+                        help="The number of the uncertainty metric functions")
+    parser.add_argument("--noise_lambda", type=float, default=0.4,
                         help="The number of the uncertainty metric functions")
     # Debug
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")
     args = parser.parse_args()
 
     save_path = f"{args.dataset}_{args.mode}_cls{args.n_cls_a_task}_{args.mem_manage}_{args.uncert_metric}" \
-                f"_epoch{args.epoch}_lr{args.lr}_msz{args.memory_size}_rnd{args.rnd_seed}"
+                f"_{args.metric_k}_epoch{args.epoch}_lr{args.lr}_msz{args.memory_size}_rnd{args.rnd_seed}"
 
     # Training parameters
     exp_name = args.exp_name
@@ -113,7 +115,7 @@ if __name__ == '__main__':
     else:
         logger.info(f'Exp name: {exp_name} | Using CPU. Set --cuda flag to use GPU')
         device = 'cpu'
-
+    logger.info(f'{args.__dict__}')
     # Default audio frontend Hyperparameters setup for TAU-ASC
     frontend_params = {
         'sample_rate': 48000,

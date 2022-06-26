@@ -69,7 +69,10 @@ class BaseMethod:
         self.mode = kwargs["mode"]
         if self.mode == "finetune":
             self.memory_size = 0
+            self.mem_manage = "random"
         self.uncert_metric = kwargs["uncert_metric"]
+        self.metric_k = kwargs["metric_k"]
+        self.noise_lambda = kwargs["noise_lambda"]
 
     def set_current_dataset(self, train_datalist, test_datalist):
         random.shuffle(train_datalist)
@@ -136,10 +139,6 @@ class BaseMethod:
                             candidates,
                             num_class=num_class,
                         )
-                elif self.mem_manage == "equal":
-                    self.memory_list = self.equal_class_sampling(
-                        candidates, num_class
-                    )
                 else:
                     logger.error("Not implemented memory management")
                     raise NotImplementedError
@@ -157,7 +156,7 @@ class BaseMethod:
     def get_dataloader(self, batch_size, n_worker, train_list, test_list):
         train_loader = get_dataloader(pd.DataFrame(train_list), self.dataset, split='train', batch_size=batch_size,
                                       num_workers=n_worker)
-        test_loader = get_dataloader(pd.DataFrame(test_list), self.dataset, split='test', batch_size=batch_size,
+        test_loader = get_dataloader(pd.DataFrame(test_list), self.dataset, split='test', batch_size=128,
                                      num_workers=n_worker)
         return train_loader, test_loader
 
@@ -184,7 +183,7 @@ class BaseMethod:
                 # Forward
                 self.model.train()
 
-                batch_output_dict = self.model(batch_data_dict['waveform'])
+                batch_output_dict = self.model(batch_data_dict['waveform'], training=True)
                 """{'clipwise_output': (batch_size, classes_num), ...}"""
                 batch_target_dict = {'target': batch_data_dict['target']}
                 """{'target': (batch_size, classes_num)}"""
@@ -217,7 +216,7 @@ class BaseMethod:
                 logger.info(f'EarlyStopping counter: {self.counter} out of {self.patience}.')
                 if self.counter >= self.patience:
                     break
-        return np.mean(acc_list)
+        return best['acc']
 
     def rnd_sampling(self, samples):
         random.shuffle(samples)
@@ -393,18 +392,30 @@ class BaseMethod:
         self.model.eval()
         with torch.no_grad():
             for n_batch, batch_data_dict in enumerate(infer_loader):
-                batch_data_dict['waveform'] = infer_transform(batch_data_dict['waveform'].unsqueeze(1),
-                                                              self.sample_length)
-                batch_data_dict['waveform'] = torch.as_tensor(batch_data_dict['waveform'], dtype=torch.float32)
-                batch_data_dict['waveform'] = batch_data_dict['waveform'].squeeze()
-                batch_data_dict['waveform'] = batch_data_dict['waveform'].to(self.device)
-                logit = self.model(batch_data_dict['waveform'])
-                """{'clipwise_output': (batch_size, classes_num), ...}"""
-                logit = logit['clipwise_output'].detach().cpu()
-
-                for i, cert_value in enumerate(logit):
-                    sample = infer_list[batch_size * n_batch + i]
-                    sample[uncert_name] = 1 - cert_value
+                if self.uncert_metric != "noisytune":
+                    batch_data_dict['waveform'] = infer_transform(batch_data_dict['waveform'].unsqueeze(1),
+                                                                  self.sample_length)
+                    batch_data_dict['waveform'] = torch.as_tensor(batch_data_dict['waveform'], dtype=torch.float32)
+                    batch_data_dict['waveform'] = batch_data_dict['waveform'].squeeze()
+                    batch_data_dict['waveform'] = batch_data_dict['waveform'].to(self.device)
+                    logit = self.model(batch_data_dict['waveform'])
+                    logit = logit['clipwise_output'].detach().cpu()
+                    """{'clipwise_output': (batch_size, classes_num), ...}"""
+                    for i, cert_value in enumerate(logit):
+                        sample = infer_list[batch_size * n_batch + i]
+                        sample[uncert_name] = 1 - cert_value
+                else:
+                    batch_data_dict['waveform'] = batch_data_dict['waveform'].to(self.device)
+                    logit = self.model(input=batch_data_dict['waveform'], training=False, add_noise=True,
+                                       noise_lambda=self.noise_lambda,
+                                       k=self.metric_k)
+                    logit = logit['clipwise_output']
+                    for j in range(len(logit)):
+                        logit[j] = logit[j].detach().cpu()
+                        uncert_name = f"uncert_{str(j)}"
+                        for i, cert_value in enumerate(logit[j]):
+                            sample = infer_list[batch_size * n_batch + i]
+                            sample[uncert_name] = 1 - cert_value
 
     def montecarlo(self, candidates, uncert_metric="shift"):
         transform_cands = []
@@ -412,18 +423,18 @@ class BaseMethod:
         if uncert_metric == "shift":
             transform_cands = [PitchShift(sample_rate=self.sample_length, p=1.0),
                                Shift(sample_rate=self.sample_length, p=1.0)
-                               ]
+                               ] * (self.metric_k // 2)
             for idx, tr in enumerate(transform_cands):
                 _tr = Compose([tr])
                 self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
         elif uncert_metric == "noise":
-            transform_cands = [AddColoredNoise(sample_rate=self.sample_length, p=1.0)] * 2
+            transform_cands = [AddColoredNoise(sample_rate=self.sample_length, p=1.0)] * self.metric_k
             for idx, tr in enumerate(transform_cands):
                 _tr = Compose([tr])
                 self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
         elif uncert_metric == "mask":
             transform_cands = [TimeMask(min_band_part=0, max_band_part=0.1),
-                               FrequencyMask(min_frequency_band=0, max_frequency_band=0.1, p=1)]
+                               FrequencyMask(min_frequency_band=0, max_frequency_band=0.1, p=1)] * (self.metric_k // 2)
             for idx, tr in enumerate(transform_cands):
                 _tr = Normal_Compose([tr])
                 self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
@@ -431,18 +442,22 @@ class BaseMethod:
             transform_cands = [TimeMask(min_band_part=0, max_band_part=0.1),
                                FrequencyMask(min_frequency_band=0, max_frequency_band=0.1, p=1),
                                AddColoredNoise(sample_rate=self.sample_length, p=1.0),
+                               AddColoredNoise(sample_rate=self.sample_length, p=1.0),
                                PitchShift(sample_rate=self.sample_length, p=1.0),
                                Shift(sample_rate=self.sample_length, p=1.0)
                                ]
             random.shuffle(transform_cands)
-            transform_cands = transform_cands[:2]
+            transform_cands = transform_cands[:self.metric_k]
             for idx, tr in enumerate(transform_cands):
-                if 'audiomentations' in str(transform_cands[0]):
+                if 'audiomentations' in str(tr):
                     _tr = Normal_Compose([tr])
                 else:
                     _tr = Compose([tr])
                 self._compute_uncert(candidates, _tr, uncert_name=f"uncert_{str(idx)}")
-        n_transforms = len(transform_cands)
+        elif uncert_metric == "noisytune":
+            self._compute_uncert(candidates, None, uncert_name=None)
+
+        n_transforms = self.metric_k
 
         for sample in candidates:
             self.variance_ratio(sample, n_transforms)

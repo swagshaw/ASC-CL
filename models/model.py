@@ -7,6 +7,7 @@ from pytorch.models import init_layer, init_bn
 from models.frontend import Audio_Frontend
 from models.module import ConvBlock3x3, TransitionBlock, BroadcastedBlock
 
+
 class Baseline_CNN(nn.Module):
     def __init__(self, num_class=10, frontend=None):
         super(Baseline_CNN, self).__init__()
@@ -19,7 +20,7 @@ class Baseline_CNN(nn.Module):
         self.fc_audioset = nn.Linear(32, num_class, bias=True)
 
         self.frontend = frontend
-        
+
         self.init_weight()
 
     def init_weight(self):
@@ -43,7 +44,7 @@ class Baseline_CNN(nn.Module):
         x = self.conv_block4(x, pool_size=(2, 2), pool_type='avg')
         x = F.dropout(x, p=0.2, training=self.training)
         x = torch.mean(x, dim=3)
-        
+
         (x1, _) = torch.max(x, dim=2)
         x2 = torch.mean(x, dim=2)
         x = x1 + x2
@@ -53,7 +54,7 @@ class Baseline_CNN(nn.Module):
         clipwise_output = self.fc_audioset(x)
 
         output_dict = {
-            'clipwise_output': clipwise_output, 
+            'clipwise_output': clipwise_output,
             'embedding': embedding}
 
         return output_dict
@@ -88,15 +89,15 @@ class BCResNet_Mod(torch.nn.Module):
         self.norm = norm
         self.fc_audioset = nn.Linear(1, num_class, bias=True)
         if norm:
-           self.one = nn.InstanceNorm2d(1)
-           self.two = nn.InstanceNorm2d(int(1))
-           self.three = nn.InstanceNorm2d(int(1))
-           self.four = nn.InstanceNorm2d(int(1))
-           self.five = nn.InstanceNorm2d(int(1))
+            self.one = nn.InstanceNorm2d(1)
+            self.two = nn.InstanceNorm2d(int(1))
+            self.three = nn.InstanceNorm2d(int(1))
+            self.four = nn.InstanceNorm2d(int(1))
+            self.five = nn.InstanceNorm2d(int(1))
 
         self.frontend = frontend
-    
-    def forward(self, input):
+
+    def forward(self, input, add_noise=False, training=False, noise_lambda=0.1, k=2):
 
         if self.frontend is not None:
             out = self.frontend(input)
@@ -105,42 +106,59 @@ class BCResNet_Mod(torch.nn.Module):
             out = input
 
         if self.norm:
-           out =self.lamb*out + self.one(out)
+            out = self.lamb * out + self.one(out)
         out = self.conv1(out)
 
         out = self.block1_1(out)
 
         out = self.block1_2(out)
         if self.norm:
-           out =self.lamb*out + self.two(out)
+            out = self.lamb * out + self.two(out)
 
         out = self.block2_1(out)
 
         out = self.block3_1(out)
         out = self.block3_2(out)
         if self.norm:
-           out =self.lamb*out + self.three(out)
+            out = self.lamb * out + self.three(out)
 
         out = self.block4_1(out)
 
         out = self.block5_1(out)
         out = self.block5_2(out)
         if self.norm:
-           out =self.lamb*out + self.four(out)
+            out = self.lamb * out + self.four(out)
 
         out = self.block6_1(out)
         out = self.block6_2(out)
         out = self.block6_3(out)
+        embedding = F.dropout(out, p=0.2, training=training)
+        embedding = self.block8_1(embedding)
+        embedding = self.block8_1(embedding)
         if self.norm:
-           out =self.lamb*out + self.five(out)
+            out = self.lamb * out + self.five(out)
+        if not training and add_noise is True:
+            x_hat = []
+            for i in range(k):
+                feat = out
+                noise = (torch.rand(feat.shape) - 0.5).to('cuda') * noise_lambda * torch.std(feat)
+                feat += noise
+                feat = self.block7_1(feat)
 
-        out = self.block7_1(out)
+                feat = self.block8_1(feat)
+                feat = self.block8_1(feat)
 
-        out = self.block8_1(out)
-        out = self.block8_1(out)
+                clipwise_output = torch.squeeze(torch.squeeze(feat, dim=2), dim=2)
+                x_hat.append(clipwise_output)
+            clipwise_output = x_hat
 
-        embedding = F.dropout(out, p=0.2, training=self.training)
-        clipwise_output = torch.squeeze(torch.squeeze(out,dim=2),dim=2)
+        else:
+            out = self.block7_1(out)
+
+            out = self.block8_1(out)
+            out = self.block8_1(out)
+
+            clipwise_output = torch.squeeze(torch.squeeze(out, dim=2), dim=2)
 
         output_dict = {
             'clipwise_output': clipwise_output,
@@ -149,22 +167,16 @@ class BCResNet_Mod(torch.nn.Module):
         return output_dict
 
 
-
 if __name__ == '__main__':
     panns_params = {
-        'sample_rate': 48000, 
-        'window_size': 1024, 
-        'hop_size': 320, 
-        'mel_bins': 64, 
-        'fmin': 50, 
+        'sample_rate': 48000,
+        'window_size': 1024,
+        'hop_size': 320,
+        'mel_bins': 64,
+        'fmin': 50,
         'fmax': 14000}
 
     frontend = Audio_Frontend(**panns_params)
     model = BCResNet_Mod(frontend=frontend)
 
     print(model(torch.randn(32, 48000)))
-
-
-
-
-
