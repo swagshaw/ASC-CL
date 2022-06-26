@@ -70,9 +70,16 @@ if __name__ == '__main__':
     # Debug
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")
     args = parser.parse_args()
-
-    save_path = f"{args.dataset}_{args.mode}_cls{args.n_cls_a_task}_{args.mem_manage}_{args.uncert_metric}" \
-                f"_{args.metric_k}_epoch{args.epoch}_lr{args.lr}_msz{args.memory_size}_rnd{args.rnd_seed}"
+    if args.mode == "finetune":
+        save_path = f"{args.dataset}_{args.mode}_cls{args.n_cls_a_task}" \
+                    f"_epoch{args.epoch}_lr{args.lr}_rnd{args.rnd_seed}"
+    elif args.mem_manage == "uncertainty":
+        save_path = f"{args.dataset}_{args.mode}_cls{args.n_cls_a_task}_{args.mem_manage}_{args.uncert_metric}" \
+                    f"_{args.metric_k}_{args.noise_lambda}_epoch{args.epoch}" \
+                    f"_lr{args.lr}_msz{args.memory_size}_rnd{args.rnd_seed}"
+    else:
+        save_path = f"{args.dataset}_{args.mode}_cls{args.n_cls_a_task}_{args.mem_manage}" \
+                    f"_epoch{args.epoch}_lr{args.lr}_msz{args.memory_size}_rnd{args.rnd_seed}"
 
     # Training parameters
     exp_name = args.exp_name
@@ -100,7 +107,7 @@ if __name__ == '__main__':
         format=' %(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             log_config.FileHandler(os.path.join(log_dir,
-                                                f'%s-{save_path}-%d.log' % (exp_name, time.time()))),
+                                                f'{save_path}.log')),
             log_config.StreamHandler()
         ]
     )
@@ -176,9 +183,9 @@ if __name__ == '__main__':
             fold_acc = 0.0
             for test_fold in range(1, 6):
                 logger.info(f"Set the test fold number {test_fold} of the current task")
-                method.set_current_dataset(cur_train_datalist[test_fold-1], cur_test_datalist[test_fold-1])
+                method.set_current_dataset(cur_train_datalist[test_fold - 1], cur_test_datalist[test_fold - 1])
                 # Increment known class for current task iteration.
-                method.before_task(datalist=cur_train_datalist[test_fold-1], init_opt=True)
+                method.before_task(datalist=cur_train_datalist[test_fold - 1], init_opt=True)
                 logger.info(f"[2-3] Start to train")
                 fold_acc += method.train(
                     n_epoch=args.epoch,
@@ -187,7 +194,7 @@ if __name__ == '__main__':
                 )
                 logger.info("[2-4] Update the information for the current task")
                 method.after_task(cur_iter)
-            task_acc = fold_acc/5
+            task_acc = fold_acc / 5
         else:
             # get datalist
             cur_train_datalist = get_train_datalist(args, cur_iter)
