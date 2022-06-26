@@ -18,7 +18,7 @@ from tqdm import tqdm
 from torch_audiomentations import Compose, PitchShift, Shift, AddColoredNoise
 from audiomentations import Compose as Normal_Compose
 from audiomentations import FrequencyMask
-from data_loader import get_dataloader
+from data_loader import get_dataloader, load_audio
 from pytorch.evaluate import Evaluator
 
 logger = logging.getLogger()
@@ -303,6 +303,8 @@ class BaseMethod:
                             waveform = waveform[0:max_length]
                         else:
                             waveform = np.pad(waveform, (0, max_length - len(waveform)), 'constant')
+                    else:
+                        waveform = load_audio(data['audio_name'], 44100)
                     waveform = torch.as_tensor(waveform, dtype=torch.float32)
                     waveform = waveform.to(self.device)
                     feature = (
