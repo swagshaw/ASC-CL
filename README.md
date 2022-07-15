@@ -1,4 +1,4 @@
-# uncertainty-plus-plus
+# ASC-CL
 Pytorch Implementation for Continual Learning of Acoustic Scene Classification (ASC)
 
 ### Setup Environment
