@@ -1,6 +1,5 @@
-# asc-continual-learning
-
-Pytorch Implementation for Continual Learning of Acoustic Scene Classification (ASC)
+# ASC-CL
+Pytorch Implementation for Continual Learning For On-Device Environmental Sound Classification
 
 ### Setup Environment
 
@@ -30,13 +29,13 @@ python generate_json.py --mode test --dpath your_project_path /data
 
 ### Usage
 
-To run the experiments in the paper, you just run `experiment.sh`.
+To run the experiments in the paper, you just run `train.sh`.
 For various experiments, you should know the role of each argument.
 
 - `MODE`: use CL method or not [finetune, replay]
 - `MODEL`: use baseline CNN model or BC-ResNet  [baseline, BC-ResNet ]
-- `MEM_MANAGE`: Memory management method.[equal, random, reservoir, uncertainty, prototype].
+- `MEM_MANAGE`: Memory management method.[random, reservoir, uncertainty, prototype].
 - `RND_SEED`: Random Seed Number
 - `DATASET`: Dataset name [TAU-ASC, ESC-50]
-- `MEM_SIZE`: Memory size: k={300, 500, 1000, 1500}
-- `UNCERT_MERTIC`: Metric for uncertainty [shift, noise, mask, combination]
+- `MEM_SIZE`: Memory size: k={300, 500}
+- `UNCERT_MERTIC`: Metric for uncertainty [shift, noise, noisytune]
