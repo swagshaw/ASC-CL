@@ -1,5 +1,5 @@
 # ASC-CL
-Pytorch Implementation for Continual Learning of Acoustic Scene Classification (ASC)
+Pytorch Implementation for Continual Learning For On-Device Environmental Sound Classification
 
 ### Setup Environment
 
