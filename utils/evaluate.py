@@ -2,7 +2,7 @@ from sklearn import metrics
 from sklearn.metrics import accuracy_score
 import numpy as np
 
-from pytorch.pytorch_utils import forward
+from utils.pytorch_utils import forward
 
 
 class Evaluator(object):

@@ -6,7 +6,6 @@
 @Description : generate_json
 """
 import argparse
-import csv
 import json
 import random
 import os
@@ -20,12 +19,8 @@ print(os.getcwd())
 
 TAU_class = ['airport', 'bus', 'shopping_mall', 'street_pedestrian', 'street_traffic', 'metro_station', 'metro',
              'public_square', 'tram', 'park']
-"""
-tau:5 2 2
-esc:11 10 4
-"""
 
-# TODO: cross fold for esc50 can be replaced by 5 dataloader in one json and aver acc.
+
 def main():
     parser = argparse.ArgumentParser(description="Input optional guidance for training")
     parser.add_argument("--dpath", default="/home/xiaoyang/Dev/asc-continual-learning/data", type=str,

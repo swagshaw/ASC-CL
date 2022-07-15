@@ -1,12 +1,13 @@
 """
 # !/usr/bin/env python
 -*- coding: utf-8 -*-
-@Time    : 2022/6/19 下午2:53
+@Time    : 2022/7/15 下午10:56
 @Author  : Yang "Jan" Xiao 
 @Description : get_methods
 """
 import logging
 from methods.base import BaseMethod
+
 logger = logging.getLogger()
 
 

@@ -1,6 +1,6 @@
 name: asc
 channels:
-  - pytorch
+  - utils
   - conda-forge
   - defaults
 dependencies:
@@ -77,8 +77,8 @@ dependencies:
   - python=3.7.12=hf930737_100_cpython
   - python-dateutil=2.8.2=pyhd8ed1ab_0
   - python_abi=3.7=2_cp37m
-  - pytorch=1.11.0=py3.7_cuda11.3_cudnn8.2.0_0
-  - pytorch-mutex=1.0=cuda
+  - utils=1.11.0=py3.7_cuda11.3_cudnn8.2.0_0
+  - utils-mutex=1.0=cuda
   - pyzmq=22.3.0=py37h336d617_1
   - readline=8.1=h46c0cb4_0
   - requests=2.27.1=pyhd8ed1ab_0

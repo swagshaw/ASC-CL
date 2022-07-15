@@ -1,6 +1,6 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 
 def clip_kl(student_dict, teacher_dict):
     """KL divergence loss.
@@ -18,11 +18,13 @@ def clip_bce(output_dict, target_dict):
     return F.binary_cross_entropy(
         output_dict['clipwise_output'], target_dict['target'])
 
+
 def clip_ce(output_dict, target_dict):
     """Crossentropy loss.
     """
     return F.cross_entropy(
         output_dict['clipwise_output'], target_dict['target'])
+
 
 def get_loss_func(loss_type):
     if loss_type == 'clip_bce':

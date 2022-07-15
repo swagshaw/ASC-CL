@@ -19,7 +19,7 @@ from torch_audiomentations import Compose, PitchShift, Shift, AddColoredNoise
 from audiomentations import Compose as Normal_Compose
 from audiomentations import FrequencyMask
 from data_loader import get_dataloader, load_audio
-from pytorch.evaluate import Evaluator
+from utils.evaluate import Evaluator
 
 logger = logging.getLogger()
 

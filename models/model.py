@@ -1,9 +1,7 @@
-# import sys
-# sys.path.append('/home/lxb/Disk_SSD/audioset_tagging_cnn/')
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pytorch.models import init_layer, init_bn
+from utils.models import init_layer
 from models.frontend import Audio_Frontend
 from models.module import ConvBlock3x3, TransitionBlock, BroadcastedBlock
 

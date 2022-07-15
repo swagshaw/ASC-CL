@@ -6,7 +6,7 @@ import os
 import time
 import numpy as np
 import logging as log_config
-from pytorch.losses import get_loss_func
+from utils.losses import get_loss_func
 from data_loader import get_train_datalist, get_test_datalist
 from models.model import Baseline_CNN, BCResNet_Mod
 from models.frontend import Audio_Frontend
@@ -30,25 +30,25 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='disjoint')
     parser.add_argument('--workspace', type=str, default='workspace')
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--epoch', type=int, default=1)
+    parser.add_argument('--epoch', type=int, default=30)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--model_name', type=str, default='BC-ResNet')  # 'baseline' | 'BC-ResNet'
-    parser.add_argument('--dataset', type=str, default='ESC-50')  # 'TAU-ASC' | 'ESC-50' |
-    parser.add_argument("--mode", type=str, default="finetune", help="CIL methods [finetune, replay]", )
+    parser.add_argument('--dataset', type=str, default='TAU-ASC')  # 'TAU-ASC' | 'ESC-50' |
+    parser.add_argument("--mode", type=str, default="replay", help="CIL methods [finetune, replay]", )
     parser.add_argument(
         "--mem_manage",
         type=str,
         default='prototype',
         help="memory management [random, uncertainty, reservoir, prototype]",
     )
-    parser.add_argument("--n_tasks", type=int, default=11, help="The number of tasks")
+    parser.add_argument("--n_tasks", type=int, default=5, help="The number of tasks")
     parser.add_argument(
-        "--n_cls_a_task", type=int, default=4, help="The number of class of each task"
+        "--n_cls_a_task", type=int, default=2, help="The number of class of each task"
     )
     parser.add_argument(
         "--n_init_cls",
         type=int,
-        default=10,
+        default=2,
         help="The number of classes of initial task",
     )
     parser.add_argument("--rnd_seed", type=int, default=3, help="Random seed number.")
@@ -63,9 +63,9 @@ if __name__ == '__main__':
         choices=["shift", "noise", "mask", "combination", "noisytune"],
         help="A type of uncertainty metric",
     )
-    parser.add_argument("--metric_k", type=int, default=4, choices=[2, 4, 6],
+    parser.add_argument("--metric_k", type=int, default=6, choices=[2, 4, 6],
                         help="The number of the uncertainty metric functions")
-    parser.add_argument("--noise_lambda", type=float, default=0.4,
+    parser.add_argument("--noise_lambda", type=float, default=0.2,
                         help="The number of the uncertainty metric functions")
     # Debug
     parser.add_argument("--debug", action="store_true", help="Turn on Debug mode")
@@ -210,8 +210,12 @@ if __name__ == '__main__':
                 batch_size=args.batch_size,
                 n_worker=8,
             )
+            before_update = time.time()
             logger.info("[2-4] Update the information for the current task")
             method.after_task(cur_iter)
+            update_time = time.time() - before_update
+            if cur_iter != 0:
+                task_records["update_time"].append(update_time)
         task_records["task_acc"].append(task_acc)
 
         if cur_iter > 0:
@@ -219,7 +223,7 @@ if __name__ == '__main__':
                 [task_records["task_acc"][i + 1] - task_records["task_acc"][i] for i in
                  range(len(task_records["task_acc"]) - 1)]))
         logger.info("[2-5] Report task result")
-    np.save(f"{log_dir}/{save_path}.npy", task_records["task_acc"])
+    np.save(f"{log_dir}/{save_path}.npy", task_records)
     # Total time (T)
     duration = time.time() - start_time
     # Accuracy(A)
@@ -230,3 +234,4 @@ if __name__ == '__main__':
     logger.info(f"Total time {duration}, Avg: {duration / args.n_tasks}s")
     logger.info(f'BWT: {np.mean(task_records["bwt_list"])}, std: {np.std(task_records["bwt_list"])}')
     logger.info(f"A_last {A_last} | A_avg {A_avg}")
+    logger.info(f'Update time {task_records["update_time"]}')

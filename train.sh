@@ -1,20 +1,29 @@
+# DCASE 2019 Task 1
 
 # Finetune
-CUDA_VISIBLE_DEVICES=0 python main.py --dataset TAU-ASC --model_name BC-ResNet --mode finetune --data_root &
-CUDA_VISIBLE_DEVICES=1 python main.py --dataset TAU-ASC --model_name BC-ResNet --mode finetune --data_root &
-# Sampling
-CUDA_VISIBLE_DEVICES=2 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage equal --data_root
-CUDA_VISIBLE_DEVICES=0 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage random --data_root &
-CUDA_VISIBLE_DEVICES=1 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage reservoir --data_root &
-CUDA_VISIBLE_DEVICES=2 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage prototype --data_root
-CUDA_VISIBLE_DEVICES=0 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage uncertainty --data_root &
-# Uncertainty_Metric
-CUDA_VISIBLE_DEVICES=1 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage uncertainty --uncert_metric shift--data_root &
-CUDA_VISIBLE_DEVICES=2 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage uncertainty --uncert_metric noise --data_root
-CUDA_VISIBLE_DEVICES=0 python main.py --dataset TAU-ASC --model_name BC-ResNet --mem_manage uncertainty --uncert_metric mask --data_root
+python main.py --dataset TAU-ASC --mode finetune
 
+# Random
+python main.py --dataset TAU-ASC --mode replay --mem_manage random
 
+# Reservoir
+python main.py --dataset TAU-ASC --mode replay --mem_manage reservoir
 
+# Prototype
+python main.py --dataset TAU-ASC --mode replay --mem_manage prototype
 
+# Uncertainty shift
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric shift --metric_k 2
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric shift --metric_k 4
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric shift --metric_k 6
 
+# Uncertainty noise
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric noise --metric_k 2
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric noise --metric_k 4
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric noise --metric_k 6
+
+# Uncertainty++
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric noisytune --metric_k 2
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric noisytune --metric_k 4
+python main.py --dataset TAU-ASC --mode replay --mem_manage uncertainty --uncert_metric noisytune --metric_k 6
 

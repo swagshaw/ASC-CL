@@ -1,7 +1,8 @@
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from pytorch.models import init_layer, init_bn
+from utils.models import init_layer, init_bn
+
+"""addapted from https://github.com/roman-vygon/BCResNet"""
 
 
 class ConvBlock3x3(nn.Module):
@@ -15,7 +16,6 @@ class ConvBlock3x3(nn.Module):
                                padding=(1, 1), bias=False)
 
         self.bn1 = nn.BatchNorm2d(out_channels)
-        # self.bn1 = nn.InstanceNorm2d(1)
         self.init_weight()
 
     def init_weight(self):
@@ -56,7 +56,6 @@ class SubSpectralNorm(nn.Module):
 
 
 class BroadcastedBlock(nn.Module):
-    # addapted from https://github.com/roman-vygon/BCResNet
     def __init__(
             self,
             planes: int,
@@ -69,7 +68,6 @@ class BroadcastedBlock(nn.Module):
                                       dilation=dilation,
                                       stride=stride, bias=False)
         self.ssn1 = SubSpectralNorm(planes, 4)
-        # self.ssn1 = nn.BatchNorm2d(planes)
         self.temp_dw_conv = nn.Conv2d(planes, planes, kernel_size=(1, 3), padding=temp_pad, groups=planes,
                                       dilation=dilation, stride=stride, bias=False)
         self.bn = nn.BatchNorm2d(planes)
@@ -106,7 +104,7 @@ class BroadcastedBlock(nn.Module):
 
 
 class TransitionBlock(nn.Module):
-    # addapted from https://github.com/roman-vygon/BCResNet
+
     def __init__(
             self,
             inplanes: int,
