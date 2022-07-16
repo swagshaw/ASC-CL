@@ -31,7 +31,7 @@ workspace
 ```
 ### Data
 
-We use the TAU-ASC and ESC-50 dataset as the training data.
+We use the [TAU-ASC](https://zenodo.org/record/2589280#.YtJiNHbP1UE) and [ESC-50](https://github.com/karoldvl/ESC-50/archive/master.zip) dataset as the training data.
 You should put them into:
 
 ```bash
