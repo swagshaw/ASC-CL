@@ -1,7 +1,7 @@
 [![LICENSE](https://img.shields.io/badge/license-MIT-green?style=flat-square)](https://github.com/y2l/meta-transfer-learning-tensorflow/blob/master/LICENSE)
 
 # ASC-CL
-Pytorch Implementation for Continual Learning For On-Device Environmental Sound Classification
+Pytorch Implementation for [Continual Learning For On-Device Environmental Sound Classification](https://arxiv.org/abs/2207.07429)
 
 If you have any questions on this repository or the related paper, feel free to [create an issue](https://github.com/swagshaw/ASC-CL/issues/new) or [send me an email](mailto:yxiao009+github@e.ntu.edu.sg). 
 ## Abstract
